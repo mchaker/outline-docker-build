@@ -1,0 +1,47 @@
+when:
+  - event: [push, manual, cron]
+    cron: daily_5am
+    branch: main
+
+steps:
+  - name: checkout
+    image: woodpeckerci/plugin-git
+    commands:
+      - git clone https://github.com/outline/outline.git
+      - cd outline
+      - git fetch --tags
+      - export LATEST_OUTLINE_TAG=$(git describe --tags "$(git rev-list --tags --max-count=1)")
+      - git checkout $LATEST_OUTLINE_TAG
+      - echo $LATEST_OUTLINE_TAG > ../.tags
+      - cd ..
+      - cat .tags
+
+  - name: build and publish outline base image
+    image: woodpeckerci/plugin-kaniko
+    settings:
+      context: ./outline
+      dockerfile: Dockerfile.base
+      registry: 'registry-proxy.woodpecker.svc.cluster.local'
+      insecure: true
+      repo: outline-base
+      #tags: gpugarden
+      username:
+        from_secret: docker-username
+      password:
+        from_secret: docker-password
+
+  - name: build and publish outline image
+    image: woodpeckerci/plugin-kaniko
+    settings:
+      context: ./outline
+      dockerfile: Dockerfile
+      registry: 'registry-proxy.woodpecker.svc.cluster.local'
+      insecure: true
+      repo: outline
+      #tags: gpugarden
+      build_args:
+        - BASE_IMAGE=registry-proxy.woodpecker.svc.cluster.local/outline-base:gpugarden
+      username:
+        from_secret: docker-username
+      password:
+        from_secret: docker-password

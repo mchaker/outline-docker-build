@@ -24,7 +24,7 @@ steps:
       registry: 'registry-proxy.woodpecker.svc.cluster.local'
       insecure: true
       repo: outline-base
-      #tags: gpugarden
+      tags: gpugarden
       username:
         from_secret: docker-username
       password:
